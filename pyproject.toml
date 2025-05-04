@@ -1,0 +1,18 @@
+[project]
+name = "gcp-budget-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-adk>=0.4.0",
+    "google-cloud-aiplatform[adk,agent_engines]>=1.91.0",
+    "absl-py>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+deploy-remote = "deployment.remote:main"
+
+[tool.setuptools]
+packages = ["transaction_categorizer", "deployment"]
