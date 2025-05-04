@@ -5,9 +5,9 @@ from .tools import search_gmail_for_transactions
 
 
 root_agent = Agent(
-    name="transaction_categorizer",
+    name="gmail_agent",
     model=GEMINI_MODEL_ID,
-    description="A helpful financial assistant that categorizes personal transactions into predefined categories for use in a budget spreadsheet. Can search Gmail for transaction details.",
+    description="A helpful financial assistant that searches for emails related to personal financial transactions.",
     instruction=ROOT_AGENT_INSTRUCTION,
     tools=[search_gmail_for_transactions],
 )

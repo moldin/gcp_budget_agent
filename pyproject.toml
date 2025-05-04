@@ -9,6 +9,7 @@ dependencies = [
     "google-cloud-aiplatform[adk,agent_engines]>=1.91.0",
     "absl-py>=1.0.0",
     "python-dotenv>=1.0.0",
+    "google-auth-oauthlib>=0.5.1",
 ]
 
 [project.scripts]

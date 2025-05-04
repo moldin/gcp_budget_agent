@@ -121,4 +121,5 @@ dmypy.json
 .DS_Store
 
 # User-specific ignores
-docs/ 
+docs/
+credentials/ # Ignore credentials directory
