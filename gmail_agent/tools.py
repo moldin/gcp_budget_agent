@@ -10,6 +10,9 @@ from typing import List, Dict, Optional
 from google.adk.tools import ToolContext
 from googleapiclient.errors import HttpError
 
+import base64
+import re
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,12 +57,65 @@ def _search_messages_internal(service: Resource, user_id: str, q: str) -> List[D
         return [] # Return empty list on error
 
 def _get_message_internal(service: Resource, user_id: str, msg_id: str) -> Optional[Dict]:
-    """Internal function to get a single message."""
+    """Internal function to get a single message (full content)."""
     try:
-        return service.users().messages().get(userId=user_id, id=msg_id, format='metadata', metadataHeaders=['subject']).execute() # Fetch only snippet and subject
+        # Request full format to get body content
+        return service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
     except HttpError as error:
         logger.error(f"An API error occurred getting message {msg_id}: {error}")
         return None # Return None on error
+
+# --- Helper Function for Body Parsing ---
+def _extract_body_from_payload(payload: Dict) -> str:
+    """Extracts text body from Gmail message payload, prioritizing plain text."""
+    body = "(Could not extract body)"
+    if 'parts' in payload:
+        # Handle multipart messages (common)
+        plain_text_part = None
+        html_part = None
+        for part in payload['parts']:
+            mime_type = part.get('mimeType')
+            if mime_type == 'text/plain':
+                plain_text_part = part
+                break # Prioritize plain text
+            elif mime_type == 'text/html':
+                html_part = part
+            elif mime_type.startswith('multipart/'):
+                 # Recursive call for nested multipart
+                 nested_body = _extract_body_from_payload(part)
+                 if nested_body != "(Could not extract body)":
+                     return nested_body # Return first found body from nested parts
+
+        target_part = plain_text_part if plain_text_part else html_part
+
+        if target_part and 'body' in target_part and 'data' in target_part['body']:
+            try:
+                data = target_part['body']['data']
+                byte_data = base64.urlsafe_b64decode(data)
+                body = byte_data.decode('utf-8') # Assuming UTF-8
+                # Optional: Basic HTML stripping if it was HTML
+                if target_part.get('mimeType') == 'text/html':
+                     # Very basic tag removal, consider a library for robustness
+                     body = re.sub('<[^>]+>', '', body)
+                     body = re.sub(r'\s+', ' ', body).strip() # Clean up whitespace
+            except Exception as e:
+                logger.warning(f"Failed to decode/parse message part body: {e}")
+                body = "(Error decoding body)"
+
+    elif 'body' in payload and 'data' in payload['body']:
+        # Handle single-part messages
+        try:
+            data = payload['body']['data']
+            byte_data = base64.urlsafe_b64decode(data)
+            body = byte_data.decode('utf-8')
+            if payload.get('mimeType') == 'text/html':
+                 body = re.sub('<[^>]+>', '', body)
+                 body = re.sub(r'\s+', ' ', body).strip()
+        except Exception as e:
+            logger.warning(f"Failed to decode/parse single-part message body: {e}")
+            body = "(Error decoding body)"
+
+    return body
 
 # --- ADK Tool Definition ---
 def search_gmail_for_transactions(query: str, max_results: int = 5) -> str:
@@ -67,7 +123,7 @@ def search_gmail_for_transactions(query: str, max_results: int = 5) -> str:
     Searches the user's Gmail inbox for transaction-related emails using a specific query.
     This tool is essential for gathering context (like merchant name, item details) from email
     receipts or notifications to accurately categorize financial transactions and generate
-    informative summaries.
+    informative summaries. It retrieves the FULL BODY content of the emails.
 
     Args:
         query (str): The Gmail search query string. MUST follow standard Gmail search operators.
@@ -81,12 +137,12 @@ def search_gmail_for_transactions(query: str, max_results: int = 5) -> str:
                      - '"Spotify AB" "109" after:2024/04/20 before:2024/04/25'
                      - 'subject:(Your Uber receipt) after:2024/04/28 before:2024/05/02'
                      - 'Klarna OR Paypal "Order confirmation" after:2025/01/15 before:2025/01/20'
-        max_results (int): The maximum number of email details (Subject/Snippet) to retrieve and return (default: 5).
+        max_results (int): The maximum number of email details (Subject/Body) to retrieve and return (default: 5).
 
     Returns:
         str:
             - If emails are found: A multi-line string summarizing the top `max_results` emails,
-              formatted as:\n- Subject: [Email Subject]\n  Snippet: [Email Snippet]\n(repeated for each email)
+              formatted as:\n- Subject: [Email Subject]\n  Body: [Extracted Email Body Text]\n(repeated for each email)
             - If no emails are found matching the query: The specific string "No emails found matching the query."
             - If an error occurs during Gmail API interaction: An error message string (e.g., "Error: Could not initialize Gmail service...").
     """
@@ -96,7 +152,6 @@ def search_gmail_for_transactions(query: str, max_results: int = 5) -> str:
     try:
         service = _get_cached_gmail_service()
     except Exception as e:
-        # If service init failed (e.g., file not found), return error message
         return f"Error: Could not initialize Gmail service. Check logs. Details: {e}"
 
     logger.info(f"Searching Gmail for user '{user_id}' with query: {query}")
@@ -120,20 +175,26 @@ def search_gmail_for_transactions(query: str, max_results: int = 5) -> str:
 
         if message_detail:
             fetch_count += 1
-            snippet = message_detail.get('snippet', '(No snippet)')
+            snippet = message_detail.get('snippet', '(No snippet)') # Keep snippet as fallback info if needed?
             subject = "(No Subject Header)"
-            headers = message_detail.get('payload', {}).get('headers', [])
+            payload = message_detail.get('payload', {})
+            headers = payload.get('headers', [])
             for header in headers:
                 if header.get('name', '').lower() == 'subject':
                     subject = header.get('value', '(Empty Subject)')
                     break
-            results_summary.append(f"- Subject: {subject}\n  Snippet: {snippet}")
+
+            # Extract body using the helper function
+            body_text = _extract_body_from_payload(payload)
+            # Limit body length for the summary to avoid overly long outputs
+            max_body_length = 1000
+            truncated_body = body_text[:max_body_length] + ("..." if len(body_text) > max_body_length else "")
+
+            results_summary.append(f"- Subject: {subject}\n  Body: {truncated_body}") # Use body instead of snippet
         else:
-            # Logged error in _get_message_internal, skip adding to summary
-            pass # Or add an error placeholder: results_summary.append(f"- Error fetching details for message ID: {msg_id}")
+            pass # Error already logged
 
     if not results_summary:
-         # This could happen if refs were found but fetching details failed for all
          return "Found email references, but could not retrieve details. Check logs."
 
     summary_str = f"Found {len(results_summary)} emails (out of {len(message_refs)} matching references):\n" + "\n".join(results_summary)
