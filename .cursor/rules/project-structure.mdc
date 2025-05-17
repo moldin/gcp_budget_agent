@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure Guide
+
+This project is a GCP Budget Agent that helps categorize financial transactions using Gmail search capabilities.
+
+## Main Components
+
+### Core Components
+- [transaction_categorizer/agent.py](mdc:gcp_budget_agent/transaction_categorizer/agent.py) - Main agent implementation
+- [transaction_categorizer/prompt.py](mdc:gcp_budget_agent/transaction_categorizer/prompt.py) - Agent prompts and instructions
+- [transaction_categorizer/config.py](mdc:gcp_budget_agent/transaction_categorizer/config.py) - Configuration settings
+- [src/app.py](mdc:gcp_budget_agent/src/app.py) - Application entry point
+
+### Configuration Files
+- [pyproject.toml](mdc:gcp_budget_agent/pyproject.toml) - Project dependencies and metadata
+- [.env](mdc:gcp_budget_agent/.env) - Environment variables (not tracked in git)
+- [.python-version](mdc:gcp_budget_agent/.python-version) - Python version specification
+
+### Deployment
+- [deployment/remote.py](mdc:gcp_budget_agent/deployment/remote.py) - Remote deployment script for Vertex AI
+
+## Key Directories
+- `transaction_categorizer/` - Main agent implementation
+- `gmail_agent/` - Gmail integration components
+- `credentials/` - Service account credentials (not tracked in git)
+- `docs/` - Project documentation
+- `deployment/` - Deployment-related scripts
+
+## Development Workflow
+1. Use `uv` for package management
+2. Run locally with `adk run transaction_categorizer`
+3. Deploy remotely using `deploy-remote` script

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- AI Model Configuration ---
-GEMINI_MODEL_ID = os.getenv("GEMINI_MODEL_ID")
+GEMINI_MODEL_ID = "gemini-2.5-flash-preview-04-17" #os.getenv("GEMINI_MODEL_ID")
 
 # --- Google API Configuration ---
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]

@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# System Architecture
+
+## Overview
+The GCP Budget Agent is built using Google Cloud's Agent Development Kit (ADK) and integrates with Gmail for transaction categorization.
+
+## Core Components
+
+### Transaction Categorizer
+- [transaction_categorizer/agent.py](mdc:gcp_budget_agent/transaction_categorizer/agent.py) - Implements the main agent logic
+- [transaction_categorizer/prompt.py](mdc:gcp_budget_agent/transaction_categorizer/prompt.py) - Contains agent instructions and prompts
+- [transaction_categorizer/config.py](mdc:gcp_budget_agent/transaction_categorizer/config.py) - Manages configuration and settings
+
+### Gmail Integration
+- [gmail_agent/tools.py](mdc:gcp_budget_agent/gmail_agent/tools.py) - Implements Gmail search functionality
+- Uses service account with Domain-Wide Delegation
+- Requires OAuth scope: `https://www.googleapis.com/auth/gmail.readonly`
+
+### Deployment
+- [deployment/remote.py](mdc:gcp_budget_agent/deployment/remote.py) - Handles deployment to Vertex AI
+- Uses Cloud Storage for staging
+- Manages agent sessions and interactions
+
+## Data Flow
+1. User sends request to agent
+2. Agent processes request using ADK
+3. If needed, agent searches Gmail using service account
+4. Agent categorizes transactions
+5. Results returned to user
+
+## Security
+- Service account credentials stored in `credentials/` directory
+- Environment variables in `.env` file
+- Domain-Wide Delegation for Gmail access
+- Application Default Credentials for GCP access

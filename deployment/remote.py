@@ -25,7 +25,7 @@ flags.DEFINE_bool("get_session", False, "Gets a specific session.")
 flags.DEFINE_bool("send", False, "Sends a message to the deployed agent.")
 flags.DEFINE_string(
     "message",
-    "Shorten this message: Hello, how are you doing today?",
+    "2025-03-25	5071901772	WALLEY	-2 536,00",
     "Message to send to the agent.",
 )
 flags.mark_bool_flags_as_mutual_exclusive(
@@ -54,6 +54,13 @@ def create() -> None:
         agent_engine=app,
         requirements=[
             "google-cloud-aiplatform[adk,agent_engines]",
+            "beautifulsoup4>=4.12.0",
+            "python-dotenv>=1.0.0",
+            "pydantic>=2.0.0",
+            "google-auth>=2.22.0",
+            "google-auth-oauthlib>=1.0.0",
+            "google-api-python-client>=2.100.0",
+            "email-validator>=2.0.0"
         ],
         extra_packages=["./transaction_categorizer"],
     )
