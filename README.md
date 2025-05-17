@@ -97,8 +97,9 @@ Follow these steps to set up the project on a new machine:
         *   Move the downloaded JSON key file into this `credentials/` directory.
         *   Rename the key file if desired (e.g., `service-account-key.json`).
 
-    **e. Verify `gmail_agent/tools.py` Configuration:**
-        *   Open the `gmail_agent/tools.py` file.
+    **e. Verify `transaction_categorizer/sub_agents/gmail_agent/gmail_tool.py` Configuration:**
+        *   Open the `transaction_categorizer/sub_agents/gmail_agent/gmail_tool.py` file.
+        *   This file contains the `SERVICE_ACCOUNT_FILE` and `USER_EMAIL_TO_IMPERSONATE` constants.
         *   Ensure the `SERVICE_ACCOUNT_FILE` constant points to the correct path/filename of your key file within the `credentials/` directory.
         *   Ensure the `USER_EMAIL_TO_IMPERSONATE` constant is set to the **email address of the user whose Gmail inbox the agent should search** (e.g., `'your-email@yourdomain.com'`).
         *   The `.gitignore` file is already configured to ignore the `credentials/` directory, protecting your key file.
